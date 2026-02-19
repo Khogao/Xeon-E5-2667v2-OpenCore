@@ -1,0 +1,25 @@
+# Bỏ qua file tạm và download
+_tmp/
+*.zip
+*.tar.gz
+*.7z
+
+# Bỏ qua recovery image (nặng, ~1GB)
+**/com.apple.recovery.boot/BaseSystem.dmg
+**/sequoia_recovery/
+
+# Bỏ qua SMBIOS / serial cá nhân (KHÔNG commit lên public repo!)
+**/config.plist
+
+# Bỏ qua file hệ thống
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Bỏ qua compiled Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Bỏ qua log
+*.log
