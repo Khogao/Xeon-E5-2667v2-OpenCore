@@ -32,7 +32,7 @@ import shutil
 # ─── PATHS ───────────────────────────────────────────────────────────────────
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OC_ROOT    = os.path.join(SCRIPT_DIR, "EFI", "OC")
-CONFIG_PATH = os.path.join(OC_ROOT, "config.plist")
+CONFIG_PATH = os.path.join(OC_ROOT, "config.draft.plist")  # draft để tham khảo; config.plist làm thủ công từ Sample.plist
 SAMPLE_PATH = os.path.normpath(os.path.join(
     SCRIPT_DIR, "Updates", "OpenCore_Extracted", "Docs", "Sample.plist"
 ))
