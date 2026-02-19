@@ -33,11 +33,9 @@ import shutil
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OC_ROOT    = os.path.join(SCRIPT_DIR, "EFI", "OC")
 CONFIG_PATH = os.path.join(OC_ROOT, "config.plist")
-SAMPLE_PATH = os.path.join(
-    SCRIPT_DIR, "..", "X220-OpenCore", "Updates", "OpenCore_Extracted",
-    "X64", "EFI", "OC", "Sample.plist"
-)
-SAMPLE_PATH = os.path.normpath(SAMPLE_PATH)
+SAMPLE_PATH = os.path.normpath(os.path.join(
+    SCRIPT_DIR, "Updates", "OpenCore_Extracted", "Docs", "Sample.plist"
+))
 
 # ─── KEXT LOAD ORDER ─────────────────────────────────────────────────────────
 KEXT_ORDER = {
