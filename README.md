@@ -425,6 +425,230 @@ Boot từ USB → chọn `Install macOS Sequoia` → cài vào **Apple SSD SM012
 
 ---
 
+## config.plist — Tất cả thay đổi so với Sample.plist gốc (OC 1.0.6)
+
+> Dùng `configure_opencore.py` để tự động áp dụng. Bảng bên dưới là reference thủ công.  
+> Ký hiệu: ✏️ = phải đổi | ✅ = giữ nguyên default | ➕ = thêm mới | 🗑️ = xoá/clear
+
+---
+
+### ACPI
+
+| Đường dẫn | Default (Sample) | Giá trị cho build này | Ghi chú |
+|---|---|---|---|
+| `ACPI/Add` | 16 entries (nhiều platform) | ✏️ Xoá hết, thêm chỉ: `SSDT-EC.aml`, `SSDT-PLUG.aml`, `SSDT-USBX.aml` | `SSDT-PM.aml` thêm sau khi cài |
+| `ACPI/Delete` | 2 entries (Drop CpuPm, Cpu0Ist) | ✏️ **Xoá hết** — Enabled = False hoặc clear list | Chỉ Sandy Bridge mới cần Drop; Ivy Bridge-EP không cần |
+| `ACPI/Patch` | 3 entries mẫu | ✏️ Clear (để `[]`) | Không cần ACPI patch cho X79 |
+| `ACPI/Quirks/ResetLogoStatus` | `True` | ✅ Giữ | — |
+| Các Quirks ACPI còn lại | `False` | ✅ Giữ | — |
+
+---
+
+### Booter
+
+| Đường dẫn | Default | Giá trị cần đặt | Ghi chú |
+|---|---|---|---|
+| `Booter/Quirks/AvoidRuntimeDefrag` | `False` | ✏️ **`True`** | Cần cho KASLR hoạt động |
+| `Booter/Quirks/DevirtualiseMmio` | `False` | ✏️ **`True`** | X79 + 48GB RAM cần để tránh conflict MMIO |
+| `Booter/Quirks/EnableSafeModeSlide` | `True` | ✅ Giữ | — |
+| `Booter/Quirks/EnableWriteUnprotector` | `True` | ✅ Giữ | — |
+| `Booter/Quirks/FixupAppleEfiImages` | `True` | ✅ Giữ | — |
+| `Booter/Quirks/ProvideCustomSlide` | `True` | ✅ Giữ | — |
+| `Booter/Quirks/SetupVirtualMap` | `True` | ✅ Giữ | — |
+| `Booter/Quirks/SyncRuntimePermissions` | `False` | ✏️ **`True`** | Cần cho Ivy Bridge |
+| `Booter/Quirks/ResizeAppleGpuBars` | `-1` | ✅ Giữ | RX 580 không cần Resizable BAR |
+| `Booter/MmioWhitelist` | 2 entries mẫu | ✏️ Clear (để `[]`) | Chỉ cần khi DevirtualiseMmio gặp lỗi |
+
+---
+
+### DeviceProperties
+
+| Đường dẫn | Default | Giá trị cần đặt | Ghi chú |
+|---|---|---|---|
+| `DeviceProperties/Add/PciRoot(0x0)/Pci(0x1b,0x0)/layout-id` | `<01 00 00 00>` | ✅ Giữ (layout-id = 1) | ALC887 — thử 1 trước, nếu không âm thanh đổi sang `<07 00 00 00>` |
+| GPU DeviceProperties | _(không có trong Sample)_ | ✅ Không thêm | RX 580 native, không cần inject |
+| Ethernet DeviceProperties | _(không có)_ | ➕ Tuỳ chọn: `built-in = <01>` tại path RTL8168 | Xác nhận PCIe path bằng Hackintool trước |
+
+> **Note**: Path `PciRoot(0x0)/Pci(0x1b,0x0)` là path audio chuẩn của X79 C200 chipset — `DEV_1C26/1C2D` EHCI ở `0x1c`, audio HDA ở `0x1b`. Xác nhận lại bằng Hackintool sau cài.
+
+---
+
+### Kernel
+
+#### Kernel/Add — Kext list
+
+| Kext | Thứ tự | Ghi chú |
+|---|---|---|
+| `Lilu.kext` | 1 | Luôn đầu tiên |
+| `VirtualSMC.kext` | 2 | Trước SMC plugins |
+| `SMCProcessor.kext` | 3 | CPU sensors |
+| `SMCSuperIO.kext` | 3 | Fan sensors |
+| `WhateverGreen.kext` | 4 | DRM + GPU |
+| `AppleALC.kext` | 5 | Audio ALC887 |
+| `CpuTscSync.kext` | 6 | **BẮT BUỘC X79** |
+| `RealtekRTL8111.kext` | 7 | Ethernet RTL8168 |
+| `USBToolBox.kext` | 8 | USB driver |
+| `UTBMap.kext` | 9 | USB map (tạo từ USBToolBox.exe) |
+
+> Xoá toàn bộ 18 entries mẫu trong Sample/Add, thêm lại theo list trên.
+
+#### Kernel/Quirks
+
+| Đường dẫn | Default | Giá trị cần đặt | Ghi chú |
+|---|---|---|---|
+| `AppleCpuPmCfgLock` | `False` | ✏️ **`True`** | BIOS Huananzhi X79 không unlock CFG Lock |
+| `AppleXcpmCfgLock` | `False` | ✏️ **`True`** | Ivy Bridge-EP cần |
+| `AppleXcpmExtraMsrs` | `False` | ✅ Giữ | — |
+| `DisableIoMapper` | `False` | ✏️ **`True`** | Disable VT-d IOMMU conflicts |
+| `DisableIoMapperMapping` | `False` | ✅ Giữ | — |
+| `DisableLinkeditJettison` | `True` | ✅ Giữ | — |
+| `LapicKernelPanic` | `False` | ✅ Giữ | Không cần cho desktop |
+| `PanicNoKextDump` | `False` | ✏️ **`True`** | Dễ debug panic |
+| `PowerTimeoutKernelPanic` | `False` | ✏️ **`True`** | Tránh timeout panic |
+| `ProvideCurrentCpuInfo` | `False` | ✅ Giữ | — |
+| `SetApfsTrimTimeout` | `-1` | ✅ Giữ | SATA SSD dùng -1 |
+| `ThirdPartyDrives` | `False` | ✅ Giữ | Samsung 850 EVO + Apple SSD đều không cần |
+| `XhciPortLimit` | `False` | ✅ Giữ False | Đang dùng USBToolBox map |
+
+#### Kernel/Block, Patch, Force, Emulate
+
+| Phần | Action |
+|---|---|
+| `Kernel/Block` | ✏️ Clear (xoá 2 entries mẫu) |
+| `Kernel/Patch` | ✏️ Clear (xoá 12 entries mẫu) — không cần patch kernel cho X79 |
+| `Kernel/Force` | ✏️ Clear |
+| `Kernel/Emulate` | ✅ Giữ nguyên (tất cả empty/False) — không giả lập CPUID |
+
+---
+
+### Misc
+
+#### Misc/Boot
+
+| Đường dẫn | Default | Giá trị cần đặt | Ghi chú |
+|---|---|---|---|
+| `HideAuxiliary` | `True` | ✅ Giữ | — |
+| `LauncherOption` | `'Disabled'` | ✏️ **`'Full'`** | Đăng ký OC vào BIOS boot menu |
+| `PickerMode` | `'Builtin'` | ✏️ **`'External'`** | Dùng OpenCanopy GUI |
+| `PickerVariant` | `'Auto'` | ✏️ **`'Acidanthera\\GoldenGate'`** | Theme đẹp, hoặc để `'Auto'` |
+| `PollAppleHotKeys` | `False` | ✏️ **`True`** | Cmd+V, Cmd+R, Cmd+S |
+| `ShowPicker` | `True` | ✅ Giữ | — |
+| `Timeout` | `5` | ✅ Giữ | — |
+
+#### Misc/Debug
+
+| Đường dẫn | Default | Giá trị cần đặt | Ghi chú |
+|---|---|---|---|
+| `AppleDebug` | `False` | ✏️ **`True`** | Bật để debug (tắt sau khi ổn định) |
+| `ApplePanic` | `False` | ✏️ **`True`** | Log panic (tắt sau khi ổn định) |
+| `DisableWatchDog` | `False` | ✏️ **`True`** | Tránh timeout khi boot chậm |
+| `Target` | `3` | ✏️ **`67`** | `3` (serial) + `64` (file) = 67; tắt = `3` |
+
+#### Misc/Security
+
+| Đường dẫn | Default | Giá trị cần đặt | Ghi chú |
+|---|---|---|---|
+| `AllowSetDefault` | `False` | ✏️ **`True`** | Ctrl+Enter để đặt default OS |
+| `BlacklistAppleUpdate` | `True` | ✅ Giữ | — |
+| `DmgLoading` | `'Signed'` | ✏️ **`'Any'`** | Recovery image không signed |
+| `ScanPolicy` | `17760515` | ✏️ **`0`** | Scan tất cả, không filter |
+| `SecureBootModel` | `'Default'` | ✏️ **`'Disabled'`** | **BẮT BUỘC** cho OCLP + Ivy Bridge |
+| `Vault` | `'Secure'` | ✏️ **`'Optional'`** | Không dùng vault |
+
+---
+
+### NVRAM
+
+| Đường dẫn | Default (Sample) | Giá trị cần đặt | Ghi chú |
+|---|---|---|---|
+| `7C436110.../boot-args` | `'-v keepsyms=1'` | ✏️ **`'-v keepsyms=1 debug=0x100 npci=0x3000 alcid=1'`** | `npci=0x3000` BẮT BUỘC X79 |
+| `7C436110.../csr-active-config` | `<00 00 00 00>` | ✏️ **`<03 00 00 00>`** | SIP partial (bit 0+1) cho OCLP patches |
+| `7C436110.../prev-lang:kbd` | `ru-RU:252` (bytes) | ✏️ **`'en-US:0'`** (string) | Đặt ngôn ngữ bàn phím |
+| `7C436110.../run-efi-updater` | `'No'` | ✅ Giữ | — |
+| `LegacyEnable` | `False` | ✅ Giữ False | BIOS desktop có native NVRAM |
+| `LegacyOverwrite` | `False` | ✅ Giữ False | — |
+| `WriteFlash` | `True` | ✅ Giữ | — |
+
+---
+
+### PlatformInfo
+
+| Đường dẫn | Default (Sample) | Giá trị cần đặt | Ghi chú |
+|---|---|---|---|
+| `Generic/SystemProductName` | `'iMac19,1'` | ✏️ **`'MacPro6,1'`** | SMBIOS cho Ivy Bridge-EP Xeon |
+| `Generic/SystemSerialNumber` | `'W00000000001'` | ✏️ **[GenSMBIOS output]** | Bắt buộc generate bằng GenSMBIOS |
+| `Generic/MLB` | `'M0000000000000001'` | ✏️ **[GenSMBIOS output]** | Board Serial — bắt buộc generate |
+| `Generic/SystemUUID` | `'00000000-...'` | ✏️ **[UUID mới]** | Generate random UUID |
+| `Generic/ROM` | `<11 22 33 44 55 66>` | ✏️ **`<F4 5C 89 A5 50 8F>`** | WiFi MAC: `F4:5C:89:A5:50:8F` |
+| `Generic/SpoofVendor` | `True` | ✅ Giữ | Apple Inc. vendor spoof |
+| `UpdateDataHub` | `True` | ✅ Giữ | — |
+| `UpdateNVRAM` | `True` | ✅ Giữ | — |
+| `UpdateSMBIOS` | `True` | ✅ Giữ | — |
+| `UpdateSMBIOSMode` | `'Create'` | ✅ Giữ | — |
+
+---
+
+### UEFI
+
+#### UEFI/APFS
+
+| Đường dẫn | Default | Giá trị cần đặt | Ghi chú |
+|---|---|---|---|
+| `MinDate` | `0` | ✏️ **`-1`** | Cho phép mọi phiên bản APFS driver |
+| `MinVersion` | `0` | ✏️ **`-1`** | Cho phép mọi phiên bản APFS |
+
+#### UEFI/Drivers
+
+| Driver | Action | Ghi chú |
+|---|---|---|
+| `OpenRuntime.efi` | ✏️ Giữ, `LoadEarly = True` | Bắt buộc |
+| `HfsPlusLegacy.efi` | ➕ Thêm | Đọc HFS+ partition |
+| `OpenCanopy.efi` | ➕ Thêm | GUI picker |
+| 47 entries mẫu còn lại | 🗑️ Xoá hết | Không dùng |
+| `OpenVariableRuntimeDxe.efi` | 🗑️ **Không dùng** | BIOS desktop có native NVRAM |
+
+#### UEFI/Quirks
+
+| Đường dẫn | Default | Giá trị cần đặt | Ghi chú |
+|---|---|---|---|
+| `EnableVectorAcceleration` | `True` | ✅ Giữ | — |
+| `IgnoreInvalidFlexRatio` | `False` | ✅ Giữ False | Chỉ Sandy Bridge mới cần `True` |
+| `ReleaseUsbOwnership` | `False` | ✏️ **`True`** | EHCI handoff — USB hoạt động trước khi OS boot |
+| `RequestBootVarRouting` | `True` | ✅ Giữ | Cần cho `LauncherOption=Full` |
+| `ResizeGpuBars` | `-1` | ✅ Giữ | — |
+| `TscSyncTimeout` | `0` | ✅ Giữ `0` | Dùng `CpuTscSync.kext` thay vì quirk này |
+| `UnblockFsConnect` | `False` | ✅ Giữ | Không phải HP |
+
+#### UEFI/Output
+
+| Đường dẫn | Default | Giá trị cần đặt | Ghi chú |
+|---|---|---|---|
+| `ProvideConsoleGop` | `True` | ✅ Giữ | — |
+| `Resolution` | `'Max'` | ✅ Giữ | Hoặc đặt `'1920x1080'` nếu muốn cố định |
+| `TextRenderer` | `'BuiltinGraphics'` | ✅ Giữ | — |
+
+---
+
+### Tóm tắt số lượng thay đổi
+
+| Section | Số field cần đổi | Mức độ |
+|---|---|---|
+| ACPI | Clear 3 lists + tuỳ SSDT | Đơn giản |
+| Booter/Quirks | 3 field | Đơn giản |
+| DeviceProperties | 1 field (layout-id đã đúng) | Không cần đổi |
+| Kernel/Quirks | 5 field | Quan trọng |
+| Kernel/Add | Clear + thêm 9-10 kexts | Quan trọng |
+| Misc/Boot | 3 field | Đơn giản |
+| Misc/Debug | 3 field | Tạm thời |
+| Misc/Security | 4 field | **Quan trọng** |
+| NVRAM/boot-args | 1 field | **Quan trọng** |
+| PlatformInfo | 4 field (GenSMBIOS) | **Bắt buộc** |
+| UEFI/APFS | 2 field | Đơn giản |
+| UEFI/Drivers | Clear + thêm 3 driver | Đơn giản |
+| UEFI/Quirks | 1 field | Đơn giản |
+
+---
+
 ## Tham khảo
 
 - [Dortania OpenCore Install Guide](https://dortania.github.io/OpenCore-Install-Guide/)
