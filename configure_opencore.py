@@ -208,10 +208,16 @@ def main():
     q["AppleCpuPmCfgLock"]        = True   # BIOS Huananzhi X79 không unlock CFG Lock
     q["AppleXcpmCfgLock"]         = True   # Cần cho Ivy Bridge-EP
     q["DisableIoMapper"]          = True   # Disable VT-d mapping
+    q["DisableLinkeditJettison"]  = True   # Ổn định kext loading
     q["LapicKernelPanic"]         = False  # Không cần trên desktop
     q["PanicNoKextDump"]          = True   # Debug dễ hơn
     q["PowerTimeoutKernelPanic"]  = True   # Tránh panic vì timeout
     q["XhciPortLimit"]            = False  # Dùng USBToolBox map từ Windows
+
+    # Clear entries mẫu — Ivy Bridge-EP không cần chúng
+    config["Kernel"]["Block"]  = []
+    config["Kernel"]["Patch"]  = []
+    config["Kernel"]["Force"]  = []
 
     # ── 6. Misc ──────────────────────────────────────────────────────────────
     print("[6] Misc...")
@@ -219,13 +225,16 @@ def main():
     config["Misc"]["Boot"]["PickerMode"]        = "External"
     config["Misc"]["Boot"]["PickerVariant"]     = "Acidanthera\\GoldenGate"
     config["Misc"]["Boot"]["PollAppleHotKeys"]  = True
+    config["Misc"]["Boot"]["HideAuxiliary"]     = True
     config["Misc"]["Boot"]["Timeout"]           = 5
 
-    config["Misc"]["Debug"]["AppleDebug"]   = True
-    config["Misc"]["Debug"]["ApplePanic"]   = True
-    config["Misc"]["Debug"]["Target"]       = 67    # file + serial logging
+    config["Misc"]["Debug"]["AppleDebug"]      = True
+    config["Misc"]["Debug"]["ApplePanic"]      = True
+    config["Misc"]["Debug"]["DisableWatchDog"] = True   # Tránh timeout khi boot chậm
+    config["Misc"]["Debug"]["Target"]          = 67    # file + serial logging
 
     config["Misc"]["Security"]["AllowSetDefault"]    = True
+    config["Misc"]["Security"]["DmgLoading"]         = "Any"       # Recovery image không signed
     config["Misc"]["Security"]["ScanPolicy"]         = 0
     config["Misc"]["Security"]["SecureBootModel"]    = "Disabled"  # Cần cho Ivy Bridge + OCLP
     config["Misc"]["Security"]["Vault"]              = "Optional"
@@ -284,7 +293,7 @@ def main():
     # ── 9. UEFI ──────────────────────────────────────────────────────────────
     print("[9] UEFI quirks...")
     uq = config["UEFI"]["Quirks"]
-    uq["IgnoreInvalidFlexRatio"] = False  # Chỉ Sandy Bridge mới cần
+    uq["IgnoreInvalidFlexRatio"] = True   # BẮT BUỘC Sandy Bridge VÀ Ivy Bridge-E — Dortania guide
     uq["ReleaseUsbOwnership"]    = True   # Nhường USB từ BIOS cho OS
     uq["RequestBootVarRouting"]  = True   # Cần cho LauncherOption=Full
     uq["UnblockFsConnect"]       = False  # Không phải HP
@@ -312,7 +321,7 @@ CHECKLIST TRƯỚC KHI BOOT:
   [ ] Copy SSDT/ACPI vào EFI/OC/ACPI/:
         SSDT-EC.aml, SSDT-PLUG.aml, SSDT-USBX.aml
         SSDT-PM.aml (tạo sau boot bằng ssdtPRGen.sh)
-  [ ] BIOS: TẮT "Above 4G Decoding"
+  [ ] BIOS: BẬT "Above 4G Decoding" — BẮT BUỘC (Dortania Ivy Bridge-E HEDT)
   [ ] BIOS: 'AppleCpuPmCfgLock' + 'AppleXcpmCfgLock' = YES (đã set)
   [ ] boot-args bao gồm 'npci=0x3000' (đã set)
   [ ] Sau cài: chạy OCLP → Post-Install Root Patch cho Ivy Bridge

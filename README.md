@@ -2,7 +2,7 @@
 
 > **Ngôn ngữ**: Tiếng Việt | **Cập nhật lần cuối**: Tháng 2/2026
 > **Target OS**: macOS Sequoia 15.x | **Bootloader**: OpenCore 1.0.6 | **OCLP**: 2.4.1
-> **Trạng thái**: Đang setup  chưa cài xong
+> **Trạng thái**: Đang setup — chưa cài xong
 
 ---
 
@@ -146,21 +146,25 @@ Tải prebuilt từ [dortania/Getting-Started-With-ACPI](https://github.com/dort
 
 | Setting | Lý do |
 |---|---|
-| **Above 4G Decoding** | BẮT BUỘC TẮT trên X79  bật sẽ lỗi boot (ngược với desktop Intel gen mới!) |
 | Fast Boot | Can thiệp bootloader |
 | Secure Boot | Chặn OpenCore |
+| Serial/COM Port | Không cần, giảm nhiễu |
 | VT-d | Gây xung đột IOMMU (hoặc bật quirk `DisableIoMapper`) |
 | CSM / Legacy ROM | Cần UEFI thuần |
+| Intel SGX | Không cần, macOS không dùng |
+| Intel Platform Trust | Không cần, macOS không dùng |
 
 ### Các setting cần BẬT
 
 | Setting | Lý do |
 |---|---|
+| **Above 4G Decoding** | BẮT BUỘC BẬT — Dortania Ivy Bridge-E HEDT; không liên quan PCI issue (dùng `npci=0x3000` cho cái đó) |
 | VT-x | Bắt buộc cho macOS |
 | Hyper-Threading | Khai thác đủ 16 luồng |
 | Execute Disable Bit | Security, macOS yêu cầu |
-| EHCI/XHCI Hand-off | USB trước khi OS nắm quyền |
+| EHCI/XHCI Hand-off | USB trước khi OS nắm quyền — đặc biệt quan trọng với Intel C200 EHCI của máy |
 | SATA Mode: **AHCI** | Nhận ổ cứng đúng |
+| **OS type: Windows 8.1/10 UEFI Mode** | Bắt buộc UEFI boot — Dortania Ivy Bridge-E; một số board cần chọn "Other OS" nếu không thấy option này |
 
 ### CFG Lock
 
@@ -414,7 +418,7 @@ USB:\
 | `APFS/MinVersion` | `0` | **`-1`** | Cho phép mọi phiên bản APFS |
 | `Quirks/ReleaseUsbOwnership` | `False` | **`True`** | EHCI handoff |
 | `Quirks/RequestBootVarRouting` | `True` | `True` | Cần cho LauncherOption=Full |
-| `Quirks/IgnoreInvalidFlexRatio` | `False` | `False` | Chỉ Sandy Bridge mới cần |
+| `Quirks/IgnoreInvalidFlexRatio` | `False` | **`True`** | Bắt buộc với Sandy và **Ivy Bridge-E** — Dortania guide (không chỉ Sandy Bridge) |
 | `Quirks/TscSyncTimeout` | `0` | `0` | Dùng CpuTscSync.kext thay |
 | `Quirks/UnblockFsConnect` | `False` | `False` | Không phải HP |
 
@@ -441,7 +445,7 @@ USB:\
 **Nếu treo/panic ngay:**
 - Kiểm tra `npci=0x3000` trong boot-args
 - Kiểm tra `CpuTscSync.kext` đã load (Enabled = True trong config.plist)
-- Kiểm tra `Above 4G Decoding` TẮT trong BIOS
+- Kiểm tra `Above 4G Decoding` **BẬT** trong BIOS (xem phần BIOS guide)
 
 ### 6.2 Disk Utility  Tạo APFS RAID 0
 
@@ -526,7 +530,7 @@ APFS RAID 0 không có redundancy  backup thường xuyên bắt buộc.
 |---|---|---|
 | Màn hình đen (giai đoạn 2) | Thiếu `CpuTscSync.kext` | Thêm kext, Enabled=True |
 | Không boot được | Thiếu `npci=0x3000` | Thêm vào boot-args |
-| Không boot được | Above 4G Decoding bật | Vào BIOS tắt |
+| Không boot được | Above 4G Decoding TẮT | Vào BIOS **bật** lên |
 | `OC: Grabbed zero system-id for SB` | SecureBootModel sai | `SecureBootModel = Disabled` |
 | Kernel panic | CFG Lock chưa xử lý | `AppleCpuPmCfgLock + AppleXcpmCfgLock = True` |
 | Không nhận USB 3.0 | UTBMap.kext chưa có | Chạy lại USBToolBox từ Windows |
